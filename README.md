@@ -30,7 +30,7 @@ Now you can use `git-single` from anywhere in your terminal.
 git-single https://github.com/user/repo/blob/main/path/to/file.ts
 ```
 
-This will download only `file` and place it in the current directory.
+This will download only `file.ts` and place it in the current directory.
 
 ### Clone a Specific Directory
 
@@ -45,7 +45,7 @@ This will clone only `directory` inside the repository.
 To update the script to the latest version, run:
 
 ```bash
-git-single --update
+git-single ---update
 ```
 
 ## License

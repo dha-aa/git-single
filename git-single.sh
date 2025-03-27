@@ -1,30 +1,26 @@
 #!/bin/bash
 
+LOG_FILE="$HOME/.git-single.log"
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
 # Ensure correct usage
-if [ "$#" -eq 1 ]; then
-    case "$1" in
-        ---update)
-            INSTALL_PATH="/usr/local/bin/git-single"
-            echo "Updating git-single..."
-            sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"
-            sudo chmod +x "$INSTALL_PATH"
-            echo "git-single has been updated successfully."
-            exit 0
-            ;;
-        ---uninstall)
-            INSTALL_PATH="/usr/local/bin/git-single"
-            echo "Uninstalling git-single..."
-            sudo rm -f "$INSTALL_PATH"
-            echo "git-single has been uninstalled successfully."
-            exit 0
-            ;;
-    esac
+if [ "$#" -eq 1 ] && [ "$1" == "---update" ]; then
+    INSTALL_PATH="/usr/local/bin/git-single"
+    log "Updating git-single..."
+    if ! sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"; then
+        log "Error: Failed to update git-single."
+        exit 1
+    fi
+    sudo chmod +x "$INSTALL_PATH"
+    log "git-single has been updated successfully."
+    exit 0
 fi
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <GitHub File or Directory URL>"
     echo "       $0 ---update   # To update git-single"
-    echo "       $0 ---uninstall # To uninstall git-single"
     exit 1
 fi
 
@@ -32,13 +28,13 @@ URL="$1"
 
 # Ensure Git is installed
 if ! command -v git &> /dev/null; then
-    echo "Error: Git is not installed."
+    log "Error: Git is not installed."
     exit 1
 fi
 
 # Ensure curl is installed
 if ! command -v curl &> /dev/null; then
-    echo "Error: curl is not installed."
+    log "Error: curl is not installed."
     exit 1
 fi
 
@@ -46,11 +42,13 @@ fi
 REPO_URL=$(echo "$URL" | sed -E 's#(https://github.com/[^/]+/[^/]+)/.*#\1.git#')
 REPO_NAME=$(basename -s .git "$REPO_URL")
 
+log "Processing URL: $URL"
+
 # Fetch the default branch dynamically (fallback to main if failed)
-DEFAULT_BRANCH=$(git ls-remote --symref "$REPO_URL" HEAD | awk -F'[/ ]+' '/^ref:/ {print $3}')
+DEFAULT_BRANCH=$(git ls-remote --symref "$REPO_URL" HEAD 2>/dev/null | awk -F'[/ ]+' '/^ref:/ {print $3}')
 if [ -z "$DEFAULT_BRANCH" ]; then
     DEFAULT_BRANCH="main"
-    echo "Warning: Unable to determine default branch. Assuming 'main'."
+    log "Warning: Unable to determine default branch. Assuming 'main'."
 fi
 
 # Check if URL is for a file or directory
@@ -58,31 +56,45 @@ if echo "$URL" | grep -E "/blob/[^/]+/" > /dev/null; then
     TARGET_PATH=$(echo "$URL" | sed -E 's#https://github.com/[^/]+/[^/]+/blob/[^/]+/##')
     RAW_URL="https://raw.githubusercontent.com/$(echo "$URL" | sed -E 's#https://github.com/([^/]+/[^/]+)/blob/([^/]+)/(.*)#\1/\2/\3#')"
     OUTPUT_FILE=$(basename "$TARGET_PATH")
-    echo "Fetching raw file from $RAW_URL"
-    curl -fsSL "$RAW_URL" -o "$OUTPUT_FILE" || { echo "Error: Failed to download file."; exit 1; }
-    echo "File downloaded as $OUTPUT_FILE"
+    log "Fetching raw file from $RAW_URL"
+    if ! curl -fsSL "$RAW_URL" -o "$OUTPUT_FILE"; then
+        log "Error: Failed to download file. Network issue or file may be private."
+        exit 1
+    fi
+    log "File downloaded as $OUTPUT_FILE"
     exit 0
 elif echo "$URL" | grep -E "/tree/[^/]+/" > /dev/null; then
     TARGET_PATH=$(echo "$URL" | sed -E 's#https://github.com/[^/]+/[^/]+/tree/[^/]+/##')
 else
-    echo "Error: Invalid GitHub URL format."
+    log "Error: Invalid GitHub URL format."
     exit 1
 fi
 
 # Clone repository with sparse checkout
-git clone --depth=1 --filter=blob:none --sparse "$REPO_URL" || { echo "Error: Git clone failed."; exit 1; }
-cd "$REPO_NAME" || { echo "Error: Failed to enter repo directory."; exit 1; }
+log "Cloning repository: $REPO_URL"
+if ! git clone --depth=1 --filter=blob:none --sparse "$REPO_URL"; then
+    log "Error: Git clone failed. Repository may be private or network issues occurred."
+    exit 1
+fi
+cd "$REPO_NAME" || { log "Error: Failed to enter repo directory."; exit 1; }
 
 # Set sparse checkout
-echo "Setting sparse checkout for $TARGET_PATH"
-git sparse-checkout set "$TARGET_PATH" || { echo "Error: Sparse checkout failed."; exit 1; }
+log "Setting sparse checkout for $TARGET_PATH"
+if ! git sparse-checkout set "$TARGET_PATH"; then
+    log "Error: Sparse checkout failed. Check if the path exists in the repository."
+    exit 1
+fi
 
 # Move the fetched directory to the parent directory
-mv "$TARGET_PATH" ../ || { echo "Error: Directory not found."; exit 1; }
-echo "Directory $TARGET_PATH has been moved to $(pwd)/.."
+if ! mv "$TARGET_PATH" ../; then
+    log "Error: Directory not found. Check if the path is correct."
+    exit 1
+fi
+log "Directory $TARGET_PATH has been moved to $(pwd)/.."
 
 # Cleanup
 cd ..
 rm -rf "$REPO_NAME"
+log "Cleanup completed."
 
 exit 0

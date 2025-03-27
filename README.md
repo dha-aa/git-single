@@ -48,6 +48,9 @@ To update the script to the latest version, run:
 git-single ---update
 ```
 
+## Uninstall `git-single`
+
+
 To Unistall the script to the latest version, run:
 
 ```bash

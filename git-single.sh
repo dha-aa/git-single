@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 
 LOG_FILE="$HOME/.git-single.log"
 log() {
@@ -12,13 +12,13 @@ INSTALL_PATH="/usr/local/bin/git-single"
 # Handle update
 if [ "$#" -eq 1 ] && [ "$1" == "---update" ]; then
     log "Updating git-single..."
-    echo "git-single version $VERSION"
     if ! sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"; then
         log "Error: Failed to update git-single."
         exit 1
     fi
     sudo chmod +x "$INSTALL_PATH"
     log "git-single has been updated successfully."
+    echo "git-single version $VERSION"
     exit 0
 fi
 

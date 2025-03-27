@@ -1,5 +1,7 @@
 #!/bin/bash
 
+VERSION="1.0.0"
+
 LOG_FILE="$HOME/.git-single.log"
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
@@ -28,6 +30,12 @@ if [ "$#" -eq 1 ] && [ "$1" == "---uninstall" ]; then
         log "Error: Failed to uninstall git-single."
         exit 1
     fi
+    exit 0
+fi
+
+# Handle version
+if [ "$#" -eq 1 ] && [ "$1" == "---version" ]; then
+    echo "git-single version $VERSION"
     exit 0
 fi
 

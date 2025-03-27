@@ -1,6 +1,7 @@
 #!/bin/bash
 
-VERSION="1.0.1"
+VERSION=$(git -C "$(dirname "$0")" describe --tags --always 2>/dev/null || echo "dev")
+
 
 LOG_FILE="$HOME/.git-single.log"
 log() {

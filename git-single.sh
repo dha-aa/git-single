@@ -5,9 +5,10 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
-# Ensure correct usage
+INSTALL_PATH="/usr/local/bin/git-single"
+
+# Handle update
 if [ "$#" -eq 1 ] && [ "$1" == "---update" ]; then
-    INSTALL_PATH="/usr/local/bin/git-single"
     log "Updating git-single..."
     if ! sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"; then
         log "Error: Failed to update git-single."
@@ -18,9 +19,22 @@ if [ "$#" -eq 1 ] && [ "$1" == "---update" ]; then
     exit 0
 fi
 
+# Handle uninstall
+if [ "$#" -eq 1 ] && [ "$1" == "---uninstall" ]; then
+    log "Uninstalling git-single..."
+    if sudo rm -f "$INSTALL_PATH"; then
+        log "git-single has been uninstalled successfully."
+    else
+        log "Error: Failed to uninstall git-single."
+        exit 1
+    fi
+    exit 0
+fi
+
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <GitHub File or Directory URL>"
     echo "       $0 ---update   # To update git-single"
+    echo "       $0 ---uninstall   # To uninstall git-single"
     exit 1
 fi
 

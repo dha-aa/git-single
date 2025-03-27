@@ -48,6 +48,12 @@ To update the script to the latest version, run:
 git-single ---update
 ```
 
+To Unistall the script to the latest version, run:
+
+```bash
+git-single ---uninstall
+```
+
 ## License
 
 This project is licensed under the MIT License. Feel free to use and contribute!

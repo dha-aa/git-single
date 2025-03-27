@@ -1,8 +1,18 @@
 #!/bin/bash
 
 # Ensure correct usage
+if [ "$#" -eq 1 ] && [ "$1" == "---update" ]; then
+    INSTALL_PATH="/usr/local/bin/git-single"
+    echo "Updating git-single..."
+    sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"
+    sudo chmod +x "$INSTALL_PATH"
+    echo "git-single has been updated successfully."
+    exit 0
+fi
+
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <GitHub File or Directory URL>"
+    echo "       $0 ---update   # To update git-single"
     exit 1
 fi
 
@@ -11,6 +21,12 @@ URL="$1"
 # Ensure Git is installed
 if ! command -v git &> /dev/null; then
     echo "Error: Git is not installed."
+    exit 1
+fi
+
+# Ensure curl is installed
+if ! command -v curl &> /dev/null; then
+    echo "Error: curl is not installed."
     exit 1
 fi
 

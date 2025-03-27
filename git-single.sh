@@ -1,18 +1,30 @@
 #!/bin/bash
 
 # Ensure correct usage
-if [ "$#" -eq 1 ] && [ "$1" == "---update" ]; then
-    INSTALL_PATH="/usr/local/bin/git-single"
-    echo "Updating git-single..."
-    sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"
-    sudo chmod +x "$INSTALL_PATH"
-    echo "git-single has been updated successfully."
-    exit 0
+if [ "$#" -eq 1 ]; then
+    case "$1" in
+        ---update)
+            INSTALL_PATH="/usr/local/bin/git-single"
+            echo "Updating git-single..."
+            sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"
+            sudo chmod +x "$INSTALL_PATH"
+            echo "git-single has been updated successfully."
+            exit 0
+            ;;
+        ---uninstall)
+            INSTALL_PATH="/usr/local/bin/git-single"
+            echo "Uninstalling git-single..."
+            sudo rm -f "$INSTALL_PATH"
+            echo "git-single has been uninstalled successfully."
+            exit 0
+            ;;
+    esac
 fi
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <GitHub File or Directory URL>"
     echo "       $0 ---update   # To update git-single"
+    echo "       $0 ---uninstall # To uninstall git-single"
     exit 1
 fi
 

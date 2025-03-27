@@ -6,38 +6,55 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-# Extract repository details from GitHub URL
 URL="$1"
+
+# Ensure Git is installed
+if ! command -v git &> /dev/null; then
+    echo "Error: Git is not installed."
+    exit 1
+fi
+
+# Extract repository details from GitHub URL
 REPO_URL=$(echo "$URL" | sed -E 's#(https://github.com/[^/]+/[^/]+)/.*#\1.git#')
 REPO_NAME=$(basename -s .git "$REPO_URL")
 
-# Determine if URL points to a file or directory
-if [[ "$URL" == *"/blob/main/"* ]]; then
-    TARGET_PATH=$(echo "$URL" | sed -E 's#https://github.com/[^/]+/[^/]+/blob/main/##')
-    IS_FILE=true
+# Fetch the default branch dynamically (fallback to main if failed)
+DEFAULT_BRANCH=$(git ls-remote --symref "$REPO_URL" HEAD | awk -F'[/ ]+' '/^ref:/ {print $3}')
+if [ -z "$DEFAULT_BRANCH" ]; then
+    DEFAULT_BRANCH="main"
+    echo "Warning: Unable to determine default branch. Assuming 'main'."
+fi
+
+# Check if URL is for a file or directory
+if echo "$URL" | grep -E "/blob/[^/]+/" > /dev/null; then
+    TARGET_PATH=$(echo "$URL" | sed -E 's#https://github.com/[^/]+/[^/]+/blob/[^/]+/##')
+    RAW_URL="https://raw.githubusercontent.com/$(echo "$URL" | sed -E 's#https://github.com/([^/]+/[^/]+)/blob/([^/]+)/(.*)#\1/\2/\3#')"
+    OUTPUT_FILE=$(basename "$TARGET_PATH")
+    echo "Fetching raw file from $RAW_URL"
+    curl -fsSL "$RAW_URL" -o "$OUTPUT_FILE" || { echo "Error: Failed to download file."; exit 1; }
+    echo "File downloaded as $OUTPUT_FILE"
+    exit 0
+elif echo "$URL" | grep -E "/tree/[^/]+/" > /dev/null; then
+    TARGET_PATH=$(echo "$URL" | sed -E 's#https://github.com/[^/]+/[^/]+/tree/[^/]+/##')
 else
-    TARGET_PATH=$(echo "$URL" | sed -E 's#https://github.com/[^/]+/[^/]+/tree/main/##')
-    IS_FILE=false
+    echo "Error: Invalid GitHub URL format."
+    exit 1
 fi
 
 # Clone repository with sparse checkout
-git clone --depth=1 --filter=blob:none --sparse "$REPO_URL"
-cd "$REPO_NAME" || { echo "Failed to enter repo directory"; exit 1; }
+git clone --depth=1 --filter=blob:none --sparse "$REPO_URL" || { echo "Error: Git clone failed."; exit 1; }
+cd "$REPO_NAME" || { echo "Error: Failed to enter repo directory."; exit 1; }
 
-# Handle single file case
+# Set sparse checkout
 echo "Setting sparse checkout for $TARGET_PATH"
-if [ "$IS_FILE" = true ]; then
-    git sparse-checkout set --skip-checks "$TARGET_PATH"
-else
-    git sparse-checkout set "$TARGET_PATH"
-fi
+git sparse-checkout set "$TARGET_PATH" || { echo "Error: Sparse checkout failed."; exit 1; }
 
-echo "Successfully cloned $TARGET_PATH from $REPO_URL"
+# Move the fetched directory to the parent directory
+mv "$TARGET_PATH" ../ || { echo "Error: Directory not found."; exit 1; }
+echo "Directory $TARGET_PATH has been moved to $(pwd)/.."
 
-# If it's a file, move it to the original working directory
-if [ "$IS_FILE" = true ]; then
-    mv "$TARGET_PATH" ../ || { echo "Error: File not found."; exit 1; }
-    cd ..
-    rm -rf "$REPO_NAME"
-    echo "File $TARGET_PATH has been moved to $(pwd)"
-fi
+# Cleanup
+cd ..
+rm -rf "$REPO_NAME"
+
+exit 0

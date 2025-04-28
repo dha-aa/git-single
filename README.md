@@ -11,18 +11,15 @@
 - Lightweight and fast.
 - Simple to use with a single command.
 
-## Installation
+## Installation && Give Permisssion 
 
 To install `git-single` globally, run:
 
 ```bash
-curl -o /usr/local/bin/git-single https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh
+sudo curl -o /usr/local/bin/git-single https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh
+sudo chmod +x /usr/local/bin/git-single
 ```
 
-Give Permisssion 
-```bash
-chmod +x /usr/local/bin/git-single
-```
 
 Now you can use `git-single` from anywhere in your terminal.
 

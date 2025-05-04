@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-VERSION=1.0.4
+VERSION=1.0.5
 INSTALL_PATH="/usr/local/bin/git-single"
-TEMP_DIR="/tmp/git-single-temp"  # Temporary directory for cloning
+TEMP_DIR="/tmp/git-single-temp"
 LOG_FILE="$HOME/.git-single.log"
 
 exec 3>>"$LOG_FILE"
@@ -75,9 +75,10 @@ log "Processing URL: $URL"
 clone_repo() {
     local REPO_URL="$1"
     local TARGET_PATH="$2"
-    local CURRENT_DIR="$(pwd)"
+    local CURRENT_DIR
+    CURRENT_DIR="$(pwd)"
 
-    # Ensure temp directory exists cleanly
+    # Clean and prepare temp directory
     [ -e "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
     mkdir -p "$TEMP_DIR"
 
@@ -95,11 +96,16 @@ clone_repo() {
         exit 1
     fi
 
-    # Move the cloned directory to the current working directory
-    mv "$TARGET_PATH" "$CURRENT_DIR/$TARGET_PATH" || { log "Error: Moving directory failed."; exit 1; }
+    # Move to original working directory
+    cd "$CURRENT_DIR"
+
+    # Create destination directory structure if needed
+    mkdir -p "$(dirname "$CURRENT_DIR/$TARGET_PATH")"
+    mv "$TEMP_DIR/$TARGET_PATH" "$CURRENT_DIR/$TARGET_PATH" || { log "Error: Moving directory failed."; exit 1; }
+
     log "Directory moved to $CURRENT_DIR/$TARGET_PATH"
 
-    # Clean up temp directory
+    # Clean up
     rm -rf "$TEMP_DIR"
     log "Cleanup completed. Temp directory removed."
     exit 0

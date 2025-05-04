@@ -96,7 +96,7 @@ clone_repo() {
         exit 1
     fi
 
-    # Move to original working directory
+    # Return to original working directory
     cd "$CURRENT_DIR"
 
     # Create destination directory structure if needed

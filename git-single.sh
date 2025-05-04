@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-VERSION=1.0.3
-INSTALL_PATH="/usr/local/bin/git-single"  # Installation path is /usr/local/bin
-TEMP_DIR="/usr/local/bin/git-single/temp"  # Temporary directory for cloning
+VERSION=1.0.4
+INSTALL_PATH="/usr/local/bin/git-single"
+TEMP_DIR="/tmp/git-single-temp"  # Temporary directory for cloning
 LOG_FILE="$HOME/.git-single.log"
 
 exec 3>>"$LOG_FILE"
@@ -75,11 +75,11 @@ log "Processing URL: $URL"
 clone_repo() {
     local REPO_URL="$1"
     local TARGET_PATH="$2"
-    local CURRENT_DIR="$(pwd)"  # Get the current working directory
+    local CURRENT_DIR="$(pwd)"
 
-    # Ensure temp directory exists and has proper permissions
-    sudo mkdir -p "$TEMP_DIR"
-    sudo chown "$(whoami)" "$TEMP_DIR"  # Ensure that the temp directory is owned by the current user
+    # Ensure temp directory exists cleanly
+    [ -e "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
+    mkdir -p "$TEMP_DIR"
 
     log "Cloning repository: $REPO_URL into $TEMP_DIR"
     if ! git clone --depth=1 --filter=blob:none --sparse "$REPO_URL" "$TEMP_DIR"; then
@@ -100,7 +100,7 @@ clone_repo() {
     log "Directory moved to $CURRENT_DIR/$TARGET_PATH"
 
     # Clean up temp directory
-    sudo rm -rf "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
     log "Cleanup completed. Temp directory removed."
     exit 0
 }

@@ -6,12 +6,12 @@
 
 ## Features
 
-- Clone a **single file** from a GitHub repository.
-- Clone a **specific directory** without downloading the entire repo.
-- Lightweight and fast.
-- Simple to use with a single command.
+* Clone a **single file** from a GitHub repository.
+* Clone a **specific directory** without downloading the entire repo.
+* Lightweight and fast.
+* Simple to use with a single command.
 
-## Installation && Give Permisssion 
+## Installation & Permission
 
 To install `git-single` globally, run:
 
@@ -20,7 +20,9 @@ sudo curl -o /usr/local/bin/git-single https://raw.githubusercontent.com/dha-aa/
 sudo chmod +x /usr/local/bin/git-single
 ```
 
-Now you can use `git-single` from anywhere in your terminal.
+This will download and install `git-single` to `/usr/local/bin/` and give it the proper execute permissions.
+
+Note: The script uses `/usr/local/bin/git-single/temp` as a temporary directory for cloning repositories. It will ensure the necessary permissions are set, and the temporary directory is cleaned up after use.
 
 ## Usage
 
@@ -38,7 +40,7 @@ This will download only `file.ts` and place it in the current directory.
 git-single https://github.com/user/repo/tree/main/path/to/directory
 ```
 
-This will clone only `directory` inside the repository.
+This will clone only the `directory` inside the repository to the current working directory.
 
 ## Updating `git-single`
 
@@ -50,8 +52,7 @@ git-single ---update
 
 ## Uninstall `git-single`
 
-
-To Unistall the script to the latest version, run:
+To uninstall the script, run:
 
 ```bash
 git-single ---uninstall

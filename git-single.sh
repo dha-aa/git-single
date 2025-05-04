@@ -3,7 +3,8 @@
 set -euo pipefail
 
 VERSION=1.0.3
-INSTALL_PATH="/usr/local/bin/git-single"
+INSTALL_PATH="/usr/local/bin/git-single"  # Installation path is /usr/local/bin
+TEMP_DIR="/usr/local/bin/git-single/temp"  # Temporary directory for cloning
 LOG_FILE="$HOME/.git-single.log"
 
 exec 3>>"$LOG_FILE"
@@ -71,6 +72,40 @@ URL="$1"
 log "Processing URL: $URL"
 
 # Extract repository details dynamically
+clone_repo() {
+    local REPO_URL="$1"
+    local TARGET_PATH="$2"
+    local CURRENT_DIR="$(pwd)"  # Get the current working directory
+
+    # Ensure temp directory exists and has proper permissions
+    sudo mkdir -p "$TEMP_DIR"
+    sudo chown "$(whoami)" "$TEMP_DIR"  # Ensure that the temp directory is owned by the current user
+
+    log "Cloning repository: $REPO_URL into $TEMP_DIR"
+    if ! git clone --depth=1 --filter=blob:none --sparse "$REPO_URL" "$TEMP_DIR"; then
+        log "Error: Git clone failed."
+        exit 3
+    fi
+
+    cd "$TEMP_DIR" || { log "Error: Failed to enter temp repo directory."; exit 1; }
+
+    log "Setting sparse checkout for $TARGET_PATH"
+    if ! git sparse-checkout set "$TARGET_PATH"; then
+        log "Error: Sparse checkout failed."
+        exit 1
+    fi
+
+    # Move the cloned directory to the current working directory
+    mv "$TARGET_PATH" "$CURRENT_DIR/$TARGET_PATH" || { log "Error: Moving directory failed."; exit 1; }
+    log "Directory moved to $CURRENT_DIR/$TARGET_PATH"
+
+    # Clean up temp directory
+    sudo rm -rf "$TEMP_DIR"
+    log "Cleanup completed. Temp directory removed."
+    exit 0
+}
+
+# Handle GitHub file URL
 if [[ "$URL" =~ ^https://github.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$ ]]; then
     USER="${BASH_REMATCH[1]}"
     REPO="${BASH_REMATCH[2]}"
@@ -89,6 +124,7 @@ if [[ "$URL" =~ ^https://github.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$ ]]; then
     fi
     exit 0
 
+# Handle GitHub directory URL
 elif [[ "$URL" =~ ^https://github.com/([^/]+)/([^/]+)/tree/([^/]+)/(.+)$ ]]; then
     USER="${BASH_REMATCH[1]}"
     REPO="${BASH_REMATCH[2]}"
@@ -96,27 +132,7 @@ elif [[ "$URL" =~ ^https://github.com/([^/]+)/([^/]+)/tree/([^/]+)/(.+)$ ]]; the
     TARGET_PATH="${BASH_REMATCH[4]}"
     REPO_URL="https://github.com/$USER/$REPO.git"
 
-    log "Cloning repository: $REPO_URL"
-    if ! git clone --depth=1 --filter=blob:none --sparse "$REPO_URL"; then
-        log "Error: Git clone failed."
-        exit 3
-    fi
-
-    cd "$REPO" || { log "Error: Failed to enter repo directory."; exit 1; }
-
-    log "Setting sparse checkout for $TARGET_PATH"
-    if ! git sparse-checkout set "$TARGET_PATH"; then
-        log "Error: Sparse checkout failed."
-        exit 1
-    fi
-
-    mv "$TARGET_PATH" ../ || { log "Error: Moving directory failed."; exit 1; }
-    log "Directory moved: $TARGET_PATH"
-
-    cd ..
-    rm -rf "$REPO"
-    log "Cleanup completed."
-    exit 0
+    clone_repo "$REPO_URL" "$TARGET_PATH"
 
 else
     log "Error: Invalid GitHub URL format."

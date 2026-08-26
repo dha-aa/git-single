@@ -29,9 +29,9 @@ echo "✓ Created directories: $INSTALL_DIR/tmp and $INSTALL_DIR/log"
 
 # Detect shell and add to PATH
 SHELL_CONFIG=""
-if [ -n "$ZSH_VERSION" ]; then
+if [ "${ZSH_VERSION:-}" != "" ]; then
     SHELL_CONFIG="$HOME/.zshrc"
-elif [ -n "$BASH_VERSION" ]; then
+elif [ "${BASH_VERSION:-}" != "" ]; then
     SHELL_CONFIG="$HOME/.bashrc"
 elif [ -f "$HOME/.zshrc" ]; then
     SHELL_CONFIG="$HOME/.zshrc"

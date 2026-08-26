@@ -11,18 +11,28 @@
 * Lightweight and fast.
 * Simple to use with a single command.
 
-## Installation & Permission
+## Installation
 
-To install `git-single` globally, run:
+To install `git-single` in your home directory, run:
 
 ```bash
-sudo curl -o /usr/local/bin/git-single https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh &&
-sudo chmod +x /usr/local/bin/git-single
+curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh -o ~/.git-single/git-single.sh &&
+chmod +x ~/.git-single/git-single.sh
 ```
 
-This will download and install `git-single` to `/usr/local/bin/` and give it the proper execute permissions.
+Add the following to your shell configuration (`~/.bashrc`, `~/.zshrc`, etc.):
 
-Note: The script uses `/usr/local/bin/git-single/temp` as a temporary directory for cloning repositories. It will ensure the necessary permissions are set, and the temporary directory is cleaned up after use.
+```bash
+export PATH="$HOME/.git-single:$PATH"
+```
+
+Then reload your shell configuration:
+
+```bash
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+Note: The script uses `~/.git-single/tmp/` as a temporary directory for cloning repositories and `~/.git-single/log/` for logging. These directories are automatically created and cleaned up as needed.
 
 ## Usage
 
@@ -42,12 +52,19 @@ git-single https://github.com/user/repo/tree/main/path/to/directory
 
 This will clone only the `directory` inside the repository to the current working directory.
 
+### Additional Commands
+
+```bash
+git-single --help      # Show help message
+git-single --version   # Show version information
+```
+
 ## Updating `git-single`
 
 To update the script to the latest version, run:
 
 ```bash
-git-single ---update
+git-single --update
 ```
 
 ## Uninstall `git-single`
@@ -55,7 +72,7 @@ git-single ---update
 To uninstall the script, run:
 
 ```bash
-git-single ---uninstall
+git-single --uninstall
 ```
 
 ## License

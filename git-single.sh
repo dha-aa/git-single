@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-VERSION=1.0.5
-INSTALL_PATH="/usr/local/bin/git-single"
-TEMP_DIR="/tmp/git-single-temp"
-LOG_FILE="$HOME/.git-single.log"
+VERSION=1.1.6
+INSTALL_PATH=$HOME/.git-single
+TEMP_DIR="$HOME/.git-single/tmp/git-single-temp"
+LOG_FILE="$HOME/.git-single/log/.git-single.log"
 
 exec 3>>"$LOG_FILE"
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" >&3; }
@@ -25,8 +25,8 @@ check_dependency "curl"
 # Update function
 update_script() {
     log "Updating git-single..."
-    if sudo curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH"; then
-        sudo chmod +x "$INSTALL_PATH"
+    if curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH/git-single.sh"; then
+        chmod +x "$INSTALL_PATH/git-single.sh"
         log "Update successful."
         echo "git-single updated to version $VERSION"
     else
@@ -39,7 +39,7 @@ update_script() {
 # Uninstall function
 uninstall_script() {
     log "Uninstalling git-single..."
-    if sudo rm -f "$INSTALL_PATH"; then
+    if rm -rf "$INSTALL_PATH"; then
         log "Uninstallation successful."
         echo "git-single has been removed."
     else
@@ -52,20 +52,20 @@ uninstall_script() {
 # Print help message
 print_help() {
     echo "Usage: $0 <GitHub File or Directory URL>"
-    echo "       $0 ---update       # Update git-single"
-    echo "       $0 ---uninstall    # Uninstall git-single"
-    echo "       $0 ---version      # Show version"
-    echo "       $0 ---help         # Show this help message"
+    echo "       $0 --update       # Update git-single"
+    echo "       $0 --uninstall    # Uninstall git-single"
+    echo "       $0 --version      # Show version"
+    echo "       $0 --help         # Show this help message"
     exit 0
 }
 
 # Handle script arguments
 case "${1:-}" in
-    "---update") update_script ;;
-    "---uninstall") uninstall_script ;;
-    "---version") echo "git-single version $VERSION"; exit 0 ;;
-    "---help") print_help ;;
-    "") echo "Error: No argument provided. Use ---help for usage." >&2; exit 1 ;;
+    "--update") update_script ;;
+    "--uninstall") uninstall_script ;;
+    "--version") echo "git-single version $VERSION"; exit 0 ;;
+    "--help") print_help ;;
+    "") echo "Error: No argument provided. Use --help for usage." >&2; exit 1 ;;
 esac
 
 URL="$1"

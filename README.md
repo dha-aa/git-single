@@ -13,24 +13,25 @@
 
 ## Installation
 
-To install `git-single` in your home directory, run:
+To install `git-single`, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh -o ~/.git-single/git-single.sh &&
-chmod +x ~/.git-single/git-single.sh
+curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh | bash
 ```
 
-Add the following to your shell configuration (`~/.bashrc`, `~/.zshrc`, etc.):
+Or download and run the install script manually:
 
 ```bash
-export PATH="$HOME/.git-single:$PATH"
+curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh -o install.sh &&
+chmod +x install.sh &&
+./install.sh
 ```
 
-Then reload your shell configuration:
-
-```bash
-source ~/.bashrc  # or source ~/.zshrc
-```
+The installer will:
+- Download the script to `~/.git-single/git-single.sh`
+- Create necessary directories (`~/.git-single/tmp/` and `~/.git-single/log/`)
+- Add `~/.git-single` to your PATH in your shell configuration
+- Reload your shell configuration
 
 Note: The script uses `~/.git-single/tmp/` as a temporary directory for cloning repositories and `~/.git-single/log/` for logging. These directories are automatically created and cleaned up as needed.
 

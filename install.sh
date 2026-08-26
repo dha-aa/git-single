@@ -27,17 +27,8 @@ mkdir -p "$INSTALL_DIR/tmp"
 mkdir -p "$INSTALL_DIR/log"
 echo "✓ Created directories: $INSTALL_DIR/tmp and $INSTALL_DIR/log"
 
-# Detect shell and add to PATH
-SHELL_CONFIG=""
-if [ "${ZSH_VERSION:-}" != "" ]; then
-    SHELL_CONFIG="$HOME/.zshrc"
-elif [ "${BASH_VERSION:-}" != "" ]; then
-    SHELL_CONFIG="$HOME/.bashrc"
-elif [ -f "$HOME/.zshrc" ]; then
-    SHELL_CONFIG="$HOME/.zshrc"
-else
-    SHELL_CONFIG="$HOME/.bashrc"
-fi
+# Add to zsh PATH configuration only
+SHELL_CONFIG="$HOME/.zshrc"
 
 # Add to PATH if not already there
 PATH_EXPORT="export PATH=\"$HOME/.git-single:\$PATH\""

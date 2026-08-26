@@ -30,10 +30,10 @@ chmod +x install.sh &&
 The installer will:
 - Download the script to `~/.git-single/git-single.sh`
 - Create necessary directories (`~/.git-single/tmp/` and `~/.git-single/log/`)
-- Add `~/.git-single` to your PATH in your shell configuration
-- Reload your shell configuration
+- Add `~/.git-single` to your PATH in `~/.zshrc`
+- Reload your zsh configuration
 
-Note: The script uses `~/.git-single/tmp/` as a temporary directory for cloning repositories and `~/.git-single/log/` for logging. These directories are automatically created and cleaned up as needed.
+Note: The script uses `~/.git-single/tmp/` as a temporary directory for cloning repositories and `~/.git-single/log/` for logging. These directories are automatically created and cleaned up as needed. PATH management is supported through `~/.zshrc` only.
 
 ## Usage
 

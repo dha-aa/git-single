@@ -44,7 +44,6 @@ uninstall_script() {
     PATH_COMMENT="# git-single"
     removed_path_entry=false
 
-    # The installer may have used either shell configuration, so check both.
     remove_path_entry() {
         local shell_config="$1"
         local temp_file
@@ -69,11 +68,11 @@ uninstall_script() {
         rm -f "$temp_file"
     }
 
+    # git-single uses zsh configuration only.
     remove_path_entry "$HOME/.zshrc"
-    remove_path_entry "$HOME/.bashrc"
 
     if [ "$removed_path_entry" = true ]; then
-        echo "Removed git-single PATH entry from shell configuration."
+        echo "Removed git-single PATH entry from ~/.zshrc."
     fi
 
     if rm -rf "$INSTALL_PATH"; then

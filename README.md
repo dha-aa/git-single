@@ -20,7 +20,6 @@ Use the command in the current terminal without restarting:
 
 ```zsh
 source ~/.zshrc
-rehash
 ```
 
 ## Usage
@@ -50,12 +49,6 @@ git-single --update
 git-single --uninstall
 ```
 
-`--uninstall` removes the installation and removes these exact lines from `~/.zshrc`:
-
-```zsh
-# git-single
-export PATH="$HOME/.git-single:$PATH"
-```
 
 ## Temporary files and logs
 

@@ -39,6 +39,43 @@ update_script() {
 # Uninstall function
 uninstall_script() {
     log "Uninstalling git-single..."
+
+    PATH_EXPORT="export PATH=\"$INSTALL_PATH:\$PATH\""
+    PATH_COMMENT="# git-single"
+    removed_path_entry=false
+
+    # The installer may have used either shell configuration, so check both.
+    remove_path_entry() {
+        local shell_config="$1"
+        local temp_file
+
+        [ -f "$shell_config" ] || return 0
+
+        temp_file=$(mktemp "${shell_config}.git-single.XXXXXX")
+        if awk -v path_export="$PATH_EXPORT" -v path_comment="$PATH_COMMENT" '
+            $0 == path_export || $0 == path_comment { next }
+            { print }
+        ' "$shell_config" > "$temp_file"; then
+            if ! cmp -s "$shell_config" "$temp_file"; then
+                if cat "$temp_file" > "$shell_config"; then
+                    removed_path_entry=true
+                else
+                    echo "Warning: could not update $shell_config" >&2
+                fi
+            fi
+        else
+            echo "Warning: could not read $shell_config" >&2
+        fi
+        rm -f "$temp_file"
+    }
+
+    remove_path_entry "$HOME/.zshrc"
+    remove_path_entry "$HOME/.bashrc"
+
+    if [ "$removed_path_entry" = true ]; then
+        echo "Removed git-single PATH entry from shell configuration."
+    fi
+
     if rm -rf "$INSTALL_PATH"; then
         log "Uninstallation successful."
         echo "git-single has been removed."

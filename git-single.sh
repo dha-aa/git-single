@@ -2,182 +2,185 @@
 
 set -euo pipefail
 
-VERSION=1.1.6
-INSTALL_PATH=$HOME/.git-single
-TEMP_DIR="$HOME/.git-single/tmp/git-single-temp"
-LOG_FILE="$HOME/.git-single/log/.git-single.log"
+# Basic settings
+VERSION="1.1.6"
+INSTALL_DIR="$HOME/.git-single"
+COMMAND_PATH="$INSTALL_DIR/git-single"
+OLD_COMMAND_PATH="$INSTALL_DIR/git-single.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh"
+ZSHRC="$HOME/.zshrc"
+TEMP_DIR="$INSTALL_DIR/tmp/git-single-temp"
+LOG_FILE="$INSTALL_DIR/log/.git-single.log"
 
-exec 3>>"$LOG_FILE"
-log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" >&3; }
+# The installer creates these folders, but creating them here also makes the
+# script work when it is copied manually.
+mkdir -p "$INSTALL_DIR/tmp" "$INSTALL_DIR/log"
 
-# Ensure dependencies exist
-check_dependency() {
-    if ! command -v "$1" &> /dev/null; then
-        log "Error: $1 is not installed."
-        echo "Error: $1 is required but not installed." >&2
+# Write a small log entry. Logging must never stop the main command.
+log() {
+    printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+# Remove temporary files when the command finishes or fails.
+cleanup() {
+    rm -rf "$TEMP_DIR"
+}
+trap cleanup EXIT
+
+# Check a command only when that command is needed.
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: $1 is required but is not installed." >&2
         exit 1
     fi
 }
 
-check_dependency "git"
-check_dependency "curl"
-
-# Update function
-update_script() {
-    log "Updating git-single..."
-    if curl -fsSL "https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh" -o "$INSTALL_PATH/git-single.sh"; then
-        chmod +x "$INSTALL_PATH/git-single.sh"
-        log "Update successful."
-        echo "git-single updated to version $VERSION"
-    else
-        log "Error: Update failed."
-        exit 2
-    fi
-    exit 0
+show_help() {
+    cat <<'HELP'
+Usage:
+  git-single <GitHub file or directory URL>
+  git-single --update
+  git-single --uninstall
+  git-single --version
+  git-single --help
+HELP
 }
 
-# Uninstall function
-uninstall_script() {
-    log "Uninstalling git-single..."
+# Remove exactly the lines added by the installer.
+remove_path_from_zshrc() {
+    local temp_file
+    local path_line="export PATH=\"$INSTALL_DIR:\$PATH\""
 
-    PATH_EXPORT="export PATH=\"$INSTALL_PATH:\$PATH\""
-    PATH_COMMENT="# git-single"
-    removed_path_entry=false
+    [ -f "$ZSHRC" ] || return 0
 
-    remove_path_entry() {
-        local shell_config="$1"
-        local temp_file
+    temp_file=$(mktemp "${ZSHRC}.git-single.XXXXXX")
 
-        [ -f "$shell_config" ] || return 0
+    awk -v comment="# git-single" -v path_line="$path_line" '
+        $0 == comment || $0 == path_line { next }
+        { print }
+    ' "$ZSHRC" > "$temp_file"
 
-        temp_file=$(mktemp "${shell_config}.git-single.XXXXXX")
-        if awk -v path_export="$PATH_EXPORT" -v path_comment="$PATH_COMMENT" '
-            $0 == path_export || $0 == path_comment { next }
-            { print }
-        ' "$shell_config" > "$temp_file"; then
-            if ! cmp -s "$shell_config" "$temp_file"; then
-                if cat "$temp_file" > "$shell_config"; then
-                    removed_path_entry=true
-                else
-                    echo "Warning: could not update $shell_config" >&2
-                fi
-            fi
-        else
-            echo "Warning: could not read $shell_config" >&2
-        fi
-        rm -f "$temp_file"
-    }
-
-    # git-single uses zsh configuration only.
-    remove_path_entry "$HOME/.zshrc"
-
-    if [ "$removed_path_entry" = true ]; then
-        echo "Removed git-single PATH entry from ~/.zshrc."
+    if ! cmp -s "$ZSHRC" "$temp_file"; then
+        cat "$temp_file" > "$ZSHRC"
+        echo "Removed git-single from ~/.zshrc."
     fi
 
-    if rm -rf "$INSTALL_PATH"; then
-        log "Uninstallation successful."
-        echo "git-single has been removed."
-    else
-        log "Error: Uninstallation failed."
+    rm -f "$temp_file"
+}
+
+update_command() {
+    require_command curl
+
+    echo "Updating git-single..."
+    if ! curl -fsSL "$SCRIPT_URL" -o "$COMMAND_PATH"; then
+        echo "Error: update failed." >&2
         exit 1
     fi
-    exit 0
+
+    chmod +x "$COMMAND_PATH"
+    rm -f "$OLD_COMMAND_PATH"
+    echo "git-single updated."
 }
 
-# Print help message
-print_help() {
-    echo "Usage: $0 <GitHub File or Directory URL>"
-    echo "       $0 --update       # Update git-single"
-    echo "       $0 --uninstall    # Uninstall git-single"
-    echo "       $0 --version      # Show version"
-    echo "       $0 --help         # Show this help message"
-    exit 0
+uninstall_command() {
+    echo "Uninstalling git-single..."
+    remove_path_from_zshrc
+    rm -rf "$INSTALL_DIR"
+    echo "git-single has been removed."
+    echo "Run: source ~/.zshrc && rehash"
 }
 
-# Handle script arguments
+download_file() {
+    local user="$1"
+    local repo="$2"
+    local branch="$3"
+    local file_path="$4"
+    local raw_url="https://raw.githubusercontent.com/$user/$repo/$branch/$file_path"
+    local output_file
+
+    require_command curl
+
+    # Save the file in the current directory using its original name.
+    output_file=$(basename "$file_path")
+    echo "Downloading $output_file..."
+
+    if ! curl -fsSL "$raw_url" -o "$output_file"; then
+        echo "Error: download failed." >&2
+        exit 1
+    fi
+
+    echo "Downloaded $output_file."
+}
+
+download_directory() {
+    local user="$1"
+    local repo="$2"
+    local branch="$3"
+    local directory_path="$4"
+    local repo_url="https://github.com/$user/$repo.git"
+    local destination="$PWD/$directory_path"
+
+    require_command git
+
+    # Clone only the requested directory.
+    rm -rf "$TEMP_DIR"
+    mkdir -p "$(dirname "$destination")"
+
+    echo "Downloading $directory_path..."
+    if ! git clone --depth 1 --filter=blob:none --sparse "$repo_url" "$TEMP_DIR"; then
+        echo "Error: could not clone the repository." >&2
+        exit 1
+    fi
+
+    if ! git -C "$TEMP_DIR" sparse-checkout set "$directory_path"; then
+        echo "Error: could not select the directory." >&2
+        exit 1
+    fi
+
+    mv "$TEMP_DIR/$directory_path" "$destination"
+    echo "Downloaded $directory_path."
+}
+
+# Handle commands that do not need a URL.
 case "${1:-}" in
-    "--update") update_script ;;
-    "--uninstall") uninstall_script ;;
-    "--version") echo "git-single version $VERSION"; exit 0 ;;
-    "--help") print_help ;;
-    "") echo "Error: No argument provided. Use --help for usage." >&2; exit 1 ;;
+    --help)
+        show_help
+        exit 0
+        ;;
+    --version)
+        echo "git-single version $VERSION"
+        exit 0
+        ;;
+    --update)
+        update_command
+        exit 0
+        ;;
+    --uninstall)
+        uninstall_command
+        exit 0
+        ;;
+    "")
+        echo "Error: please provide a GitHub URL or use --help." >&2
+        exit 1
+        ;;
 esac
 
 URL="$1"
 log "Processing URL: $URL"
 
-# Extract repository details dynamically
-clone_repo() {
-    local REPO_URL="$1"
-    local TARGET_PATH="$2"
-    local CURRENT_DIR
-    CURRENT_DIR="$(pwd)"
-
-    # Clean and prepare temp directory
-    [ -e "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
-    mkdir -p "$TEMP_DIR"
-
-    log "Cloning repository: $REPO_URL into $TEMP_DIR"
-    if ! git clone --depth=1 --filter=blob:none --sparse "$REPO_URL" "$TEMP_DIR"; then
-        log "Error: Git clone failed."
-        exit 3
-    fi
-
-    cd "$TEMP_DIR" || { log "Error: Failed to enter temp repo directory."; exit 1; }
-
-    log "Setting sparse checkout for $TARGET_PATH"
-    if ! git sparse-checkout set "$TARGET_PATH"; then
-        log "Error: Sparse checkout failed."
-        exit 1
-    fi
-
-    # Return to original working directory
-    cd "$CURRENT_DIR"
-
-    # Create destination directory structure if needed
-    mkdir -p "$(dirname "$CURRENT_DIR/$TARGET_PATH")"
-    mv "$TEMP_DIR/$TARGET_PATH" "$CURRENT_DIR/$TARGET_PATH" || { log "Error: Moving directory failed."; exit 1; }
-
-    log "Directory moved to $CURRENT_DIR/$TARGET_PATH"
-
-    # Clean up
-    rm -rf "$TEMP_DIR"
-    log "Cleanup completed. Temp directory removed."
+# A file URL looks like: /user/repository/blob/branch/path/to/file
+if [[ "$URL" =~ ^https://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$ ]]; then
+    download_file "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" \
+        "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}"
     exit 0
-}
-
-# Handle GitHub file URL
-if [[ "$URL" =~ ^https://github.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$ ]]; then
-    USER="${BASH_REMATCH[1]}"
-    REPO="${BASH_REMATCH[2]}"
-    BRANCH="${BASH_REMATCH[3]}"
-    FILE_PATH="${BASH_REMATCH[4]}"
-    REPO_URL="https://github.com/$USER/$REPO.git"
-    RAW_URL="https://raw.githubusercontent.com/$USER/$REPO/$BRANCH/$FILE_PATH"
-    OUTPUT_FILE=$(basename "$FILE_PATH")
-
-    log "Fetching raw file from $RAW_URL"
-    if curl -fsSL "$RAW_URL" -o "$OUTPUT_FILE"; then
-        log "File downloaded: $OUTPUT_FILE"
-    else
-        log "Error: Failed to download file."
-        exit 2
-    fi
-    exit 0
-
-# Handle GitHub directory URL
-elif [[ "$URL" =~ ^https://github.com/([^/]+)/([^/]+)/tree/([^/]+)/(.+)$ ]]; then
-    USER="${BASH_REMATCH[1]}"
-    REPO="${BASH_REMATCH[2]}"
-    BRANCH="${BASH_REMATCH[3]}"
-    TARGET_PATH="${BASH_REMATCH[4]}"
-    REPO_URL="https://github.com/$USER/$REPO.git"
-
-    clone_repo "$REPO_URL" "$TARGET_PATH"
-
-else
-    log "Error: Invalid GitHub URL format."
-    echo "Error: Invalid GitHub URL format. Use ---help for details." >&2
-    exit 1
 fi
+
+# A directory URL looks like: /user/repository/tree/branch/path/to/folder
+if [[ "$URL" =~ ^https://github\.com/([^/]+)/([^/]+)/tree/([^/]+)/(.+)$ ]]; then
+    download_directory "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" \
+        "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}"
+    exit 0
+fi
+
+echo "Error: invalid GitHub URL. Use --help for examples." >&2
+exit 1

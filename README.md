@@ -1,82 +1,66 @@
-# Git Single
+# git-single
 
-## Overview
+`git-single` downloads one file or one directory from a GitHub repository without downloading the whole repository.
 
-`git-single` is a Bash script that allows you to clone a single file or directory from a GitHub repository using sparse checkout. This minimizes unnecessary downloads and simplifies access to specific files.
+## Install
 
-## Features
-
-* Clone a **single file** from a GitHub repository.
-* Clone a **specific directory** without downloading the entire repo.
-* Lightweight and fast.
-* Simple to use with a single command.
-
-## Installation
-
-To install `git-single`, run:
+Run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh | bash
 ```
 
-Or download and run the install script manually:
+The installer:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh -o install.sh &&
-chmod +x install.sh &&
-./install.sh
+- Saves the command as `~/.git-single/git-single`.
+- Adds `~/.git-single` to `~/.zshrc`.
+- Removes the old `git-single.sh` command name.
+
+Use the command in the current terminal without restarting:
+
+```zsh
+source ~/.zshrc
+rehash
 ```
-
-The installer will:
-- Download the script to `~/.git-single/git-single.sh`
-- Create necessary directories (`~/.git-single/tmp/` and `~/.git-single/log/`)
-- Add `~/.git-single` to your PATH in `~/.zshrc`
-- Reload your zsh configuration
-
-Note: The script uses `~/.git-single/tmp/` as a temporary directory for cloning repositories and `~/.git-single/log/` for logging. These directories are automatically created and cleaned up as needed. PATH management is supported through `~/.zshrc` only.
 
 ## Usage
 
-### Clone a Single File
+Download one file:
 
 ```bash
-git-single https://github.com/user/repo/blob/main/path/to/file.ts
+git-single https://github.com/user/repository/blob/main/path/to/file.txt
 ```
 
-This will download only `file.ts` and place it in the current directory.
+The file is saved in the current directory.
 
-### Clone a Specific Directory
+Download one directory:
 
 ```bash
-git-single https://github.com/user/repo/tree/main/path/to/directory
+git-single https://github.com/user/repository/tree/main/path/to/directory
 ```
 
-This will clone only the `directory` inside the repository to the current working directory.
+The directory is downloaded into the current directory.
 
-### Additional Commands
-
-```bash
-git-single --help      # Show help message
-git-single --version   # Show version information
-```
-
-## Updating `git-single`
-
-To update the script to the latest version, run:
+## Other commands
 
 ```bash
+git-single --help
+git-single --version
 git-single --update
-```
-
-## Uninstall `git-single`
-
-To uninstall the script, run:
-
-```bash
 git-single --uninstall
 ```
 
+`--uninstall` removes the installation and removes these exact lines from `~/.zshrc`:
+
+```zsh
+# git-single
+export PATH="$HOME/.git-single:$PATH"
+```
+
+## Temporary files and logs
+
+Temporary clone files are stored in `~/.git-single/tmp/`. Logs are stored in `~/.git-single/log/`.
+
 ## License
 
-This project is licensed under the MIT License. Feel free to use and contribute!
-
+MIT

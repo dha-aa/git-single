@@ -2,50 +2,56 @@
 
 set -euo pipefail
 
+# Basic settings
 VERSION="1.1.6"
 INSTALL_DIR="$HOME/.git-single"
 SCRIPT_URL="https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh"
-SCRIPT_PATH="$INSTALL_DIR/git-single.sh"
+SCRIPT_PATH="$INSTALL_DIR/git-single"
+OLD_SCRIPT_PATH="$INSTALL_DIR/git-single.sh"
+ZSHRC="$HOME/.zshrc"
+PATH_LINE="export PATH=\"$INSTALL_DIR:\$PATH\""
 
-echo "Installing git-single v$VERSION..."
+printf 'Installing git-single v%s...\n' "$VERSION"
 
-# Create installation directory
-mkdir -p "$INSTALL_DIR"
+# Create the install folders.
+mkdir -p "$INSTALL_DIR/tmp" "$INSTALL_DIR/log"
 
-# Download the script
-echo "Downloading script from $SCRIPT_URL..."
-if curl -fsSL "$SCRIPT_URL" -o "$SCRIPT_PATH"; then
-    chmod +x "$SCRIPT_PATH"
-    echo "✓ Script downloaded to $SCRIPT_PATH"
-else
-    echo "✗ Failed to download script"
+# Remove the old command name, if an older version created it.
+rm -f "$OLD_SCRIPT_PATH"
+
+# Download the command without a .sh extension.
+printf 'Downloading git-single...\n'
+if ! curl -fsSL "$SCRIPT_URL" -o "$SCRIPT_PATH"; then
+    echo "Error: could not download git-single." >&2
     exit 1
 fi
+chmod +x "$SCRIPT_PATH"
 
-# Create necessary subdirectories
-mkdir -p "$INSTALL_DIR/tmp"
-mkdir -p "$INSTALL_DIR/log"
-echo "✓ Created directories: $INSTALL_DIR/tmp and $INSTALL_DIR/log"
+# Make sure the zsh configuration file exists.
+touch "$ZSHRC"
 
-# Add to zsh PATH configuration only
-SHELL_CONFIG="$HOME/.zshrc"
-
-# Add to PATH if not already there
-PATH_EXPORT="export PATH=\"$HOME/.git-single:\$PATH\""
-if ! grep -q "$HOME/.git-single" "$SHELL_CONFIG" 2>/dev/null; then
-    echo "" >> "$SHELL_CONFIG"
-    echo "# git-single" >> "$SHELL_CONFIG"
-    echo "$PATH_EXPORT" >> "$SHELL_CONFIG"
-    echo "✓ Added git-single to PATH in $SHELL_CONFIG"
+# Add the PATH line once.
+if grep -Fq "$INSTALL_DIR" "$ZSHRC"; then
+    echo "git-single is already in ~/.zshrc."
 else
-    echo "✓ git-single already in PATH"
+    {
+        echo ""
+        echo "# git-single"
+        echo "$PATH_LINE"
+    } >> "$ZSHRC"
+    echo "Added git-single to ~/.zshrc."
 fi
 
-echo ""
-echo "Installation complete!"
-echo ""
-echo "To use git-single, either:"
-echo "  1. Run: source $SHELL_CONFIG"
-echo "  2. Or restart your terminal"
-echo ""
-echo "Then you can use: git-single <GitHub URL>"
+cat <<'MESSAGE'
+
+Installation complete.
+
+To use git-single in this terminal without restarting, run:
+
+  source ~/.zshrc
+  rehash
+
+Then use:
+
+  git-single <GitHub URL>
+MESSAGE

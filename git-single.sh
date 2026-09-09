@@ -3,7 +3,6 @@
 set -euo pipefail
 
 SCRIPT_URL="https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh"
-
 download_file() {
     url="$1"
     filename="$2"
@@ -12,22 +11,28 @@ download_file() {
     if [ -n "$dir" ]; then
         basedir=$(basename "$dir")
         mkdir -p "$basedir/$(dirname "$filename")"
-        curl  -fsSL "$url" -o "$basedir/$filename"
+        curl -fsSL "$url" -o "$basedir/$filename"
     else
-        curl  -fsSL "$url" -o "$filename"
+        curl -fsSL "$url" -o "$filename"
     fi
 
     echo "Downloaded: $filename"
 }
 
+
 get_dir() {
     url="$1"
+    root="${2:-}"
 
     username=$(echo "$url" | cut -d'/' -f4)
     repo=$(echo "$url" | cut -d'/' -f5)
     branch=$(echo "$url" | cut -d'/' -f7)
     path=$(echo "$url" | cut -d'/' -f8-)
-    
+
+    # Save original directory
+    if [ -z "$root" ]; then
+        root="$path"
+    fi
 
     text=$(curl -fsSL "$url")
 
@@ -35,16 +40,50 @@ get_dir() {
 
     matches=$(echo "$text" | grep -oE "$regex" | sed "s|/$path/||")
 
-    files=$(echo "$matches" | sort -u)
+    files=""
+    dirs=""
 
+    while read -r item; do
+        [ -z "$item" ] && continue
+
+        if [[ "$item" == *.* ]]; then
+            files+="$item"$'\n'
+        else
+            dirs+="$item"$'\n'
+        fi
+    done <<< "$(echo "$matches" | sort -u)"
+
+    # Download files
     while read -r file; do
         [ -z "$file" ] && continue
 
+        # Get path relative to root
+        relative_path="${path#"$root"/}"
+
+        if [ "$path" = "$root" ]; then
+            relative_file="$file"
+        else
+            relative_file="$relative_path/$file"
+        fi
+
         download_file \
             "https://raw.githubusercontent.com/$username/$repo/refs/heads/$branch/$path/$file" \
-            "$file" \
-            "$path" &
+            "$relative_file" \
+            "$root" &
+
     done <<< "$files"
+
+    wait
+
+    # Fetch subdirectories
+    while read -r dir; do
+        [ -z "$dir" ] && continue
+
+        get_dir \
+            "https://github.com/$username/$repo/tree/$branch/$path/$dir" \
+            "$root" &
+
+    done <<< "$dirs"
 
     wait
 }

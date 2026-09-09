@@ -10,8 +10,9 @@ download_file() {
     dir="${3:-}"
 
     if [ -n "$dir" ]; then
-        mkdir -p "$dir/$(dirname "$filename")"
-        curl  -fsSL "$url" -o "$dir/$filename"
+        basedir=$(basename "$dir")
+        mkdir -p "$basedir/$(dirname "$filename")"
+        curl  -fsSL "$url" -o "$basedir/$filename"
     else
         curl  -fsSL "$url" -o "$filename"
     fi
@@ -26,6 +27,7 @@ get_dir() {
     repo=$(echo "$url" | cut -d'/' -f5)
     branch=$(echo "$url" | cut -d'/' -f7)
     path=$(echo "$url" | cut -d'/' -f8-)
+    
 
     text=$(curl -fsSL "$url")
 

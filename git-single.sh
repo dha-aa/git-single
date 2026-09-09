@@ -11,9 +11,9 @@ download_file() {
 
     if [ -n "$dir" ]; then
         mkdir -p "$dir/$(dirname "$filename")"
-        curl --fail --silent --show-error --location "$url" -o "$dir/$filename"
+        curl  -fsSL "$url" -o "$dir/$filename"
     else
-        curl --fail --silent --show-error --location "$url" -o "$filename"
+        curl  -fsSL "$url" -o "$filename"
     fi
 
     echo "Downloaded: $filename"
@@ -31,7 +31,7 @@ get_dir() {
 
     api_url="https://api.github.com/repos/$username/$repo/contents/$dir?ref=$branch"
 
-    curl --fail --silent --show-error --location "$api_url" |
+    curl  -fsSL "$api_url" |
         grep -oE '"download_url": "[^"]+"' |
         sed 's/"download_url": "//; s/"$//' |
         {

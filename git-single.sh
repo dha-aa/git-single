@@ -25,30 +25,26 @@ get_dir() {
     username=$(echo "$url" | cut -d'/' -f4)
     repo=$(echo "$url" | cut -d'/' -f5)
     branch=$(echo "$url" | cut -d'/' -f7)
-    dir=$(echo "$url" | cut -d'/' -f8-)
+    path=$(echo "$url" | cut -d'/' -f8-)
 
-    mkdir -p "$dir"
+    text=$(curl -fsSL "$url")
 
-    api_url="https://api.github.com/repos/$username/$repo/contents/$dir?ref=$branch"
+    regex="/$path/[^\"?#]+"
 
-    curl  -fsSL "$api_url" |
-        grep -oE '"download_url": "[^"]+"' |
-        sed 's/"download_url": "//; s/"$//' |
-        {
-            pids=()
-            while read -r file_url; do
-            file="$(basename "$file_url")"
-            download_file \
-                "$file_url" \
-                "$file" \
-                "$dir" &
-            pids+=("$!")
-            done
+    matches=$(echo "$text" | grep -oE "$regex" | sed "s|/$path/||")
 
-            for pid in "${pids[@]}"; do
-                wait "$pid"
-            done
-        }
+    files=$(echo "$matches" | sort -u)
+
+    while read -r file; do
+        [ -z "$file" ] && continue
+
+        download_file \
+            "https://raw.githubusercontent.com/$username/$repo/refs/heads/$branch/$path/$file" \
+            "$file" \
+            "$path" &
+    done <<< "$files"
+
+    wait
 }
 
 get_file() {

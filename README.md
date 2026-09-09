@@ -1,6 +1,6 @@
 # git-single
 
-`git-single` is a simple CLI tool for downloading a **single file or directory from a GitHub repository** without downloading the entire repository.
+`git-single` is a small shell CLI for downloading a **single file or directory from a GitHub repository** without downloading the entire repository.
 
 ## Features
 
@@ -8,18 +8,16 @@
 * Download a directory from GitHub
 * No need to clone the entire repository
 * Simple command-line interface
-* Built with Node.js
 * Works with GitHub `blob` and `tree` URLs
 
 ## Requirements
 
-* Node.js 18+
 * `curl`
 * macOS, Linux, or another Unix-like system
 
 ## Install
 
-Run:
+Install it with:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh | bash
@@ -35,6 +33,16 @@ Check that it works:
 
 ```bash
 git-single
+```
+
+The installer also supports lifecycle commands:
+
+```bash
+# Install or refresh the latest version
+curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh | bash -s -- update
+
+# Remove git-single from ~/.git-single
+curl -fsSL https://raw.githubusercontent.com/dha-aa/git-single/main/install.sh | bash -s -- uninstall
 ```
 
 ## Usage
@@ -110,7 +118,7 @@ Download a directory:
 git-single https://github.com/dha-aa/voiceflow/tree/main/docs
 ```
 
-## Installation
+## Installation details
 
 The installer creates:
 
@@ -125,18 +133,18 @@ The CLI is downloaded from this repository and installed as:
 ~/.git-single/git-single
 ```
 
-The installer also adds the directory to your shell `PATH`.
+The installer also adds the directory to your shell `PATH` once. `update` replaces the installed script while preserving the same location. `uninstall` deletes the installed executable; it leaves the PATH line in your shell startup file.
 
 ## Project Structure
 
 ```text
 git-single/
-├── git-single.js
+├── git-single.sh
 ├── install.sh
 └── README.md
 ```
 
-### `git-single.js`
+### `git-single.sh`
 
 The main CLI application.
 
@@ -155,7 +163,7 @@ The installation script.
 It:
 
 1. Creates `~/.git-single`
-2. Downloads `git-single.js`
+2. Downloads `git-single.sh`
 3. Installs it as `~/.git-single/git-single`
 4. Makes it executable
 5. Adds `~/.git-single` to the shell `PATH`

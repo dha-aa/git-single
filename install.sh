@@ -16,10 +16,12 @@ shell_rc() {
 
 add_to_path() {
     local rc
+    local path_line
     rc="$(shell_rc)"
+    path_line="export PATH=\"$DIR:\$PATH\""
     touch "$rc"
-    if ! grep -Fqx 'export PATH="$HOME/.git-single:$PATH"' "$rc"; then
-        printf '\nexport PATH="$HOME/.git-single:$PATH"\n' >> "$rc"
+    if ! grep -Fqx "$path_line" "$rc"; then
+        printf '\n%s\n' "$path_line" >> "$rc"
     fi
 }
 
@@ -30,6 +32,7 @@ install_git_single() {
     curl -fsSL "$URL" -o "$tmp"
     mkdir -p "$DIR"
     install -m 755 "$tmp" "$BIN"
+    touch "$DIR/.installed"
     add_to_path
     trap - EXIT
     rm -f "$tmp"

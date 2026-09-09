@@ -1,19 +1,19 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 SCRIPT_URL="https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh"
 
 download_file() {
     url="$1"
     filename="$2"
-    dir="$3"
+    dir="${3:-}"
 
     if [ -n "$dir" ]; then
-        mkdir -p "$dir"
-        curl -L "$url" -o "$dir/$filename"
+        mkdir -p "$dir/$(dirname "$filename")"
+        curl --fail --silent --show-error --location "$url" -o "$dir/$filename"
     else
-        curl -L "$url" -o "$filename"
+        curl --fail --silent --show-error --location "$url" -o "$filename"
     fi
 
     echo "Downloaded: $filename"
@@ -25,17 +25,19 @@ get_dir() {
     username=$(echo "$url" | cut -d'/' -f4)
     repo=$(echo "$url" | cut -d'/' -f5)
     branch=$(echo "$url" | cut -d'/' -f7)
-    dir=$(echo "$url" | cut -d'/' -f8)
+    dir=$(echo "$url" | cut -d'/' -f8-)
 
     mkdir -p "$dir"
 
-    curl -Ls "$url" |
-        grep -oE "/$dir/[^\"?#]+" |
-        sed "s|/$dir/||" |
-        sort -u |
-        while read -r file; do
+    api_url="https://api.github.com/repos/$username/$repo/contents/$dir?ref=$branch"
+
+    curl --fail --silent --show-error --location "$api_url" |
+        grep -oE '"download_url": "[^"]+"' |
+        sed 's/"download_url": "//; s/"$//' |
+        while read -r file_url; do
+            file="$(basename "$file_url")"
             download_file \
-                "https://raw.githubusercontent.com/$username/$repo/refs/heads/$branch/$dir/$file" \
+                "$file_url" \
                 "$file" \
                 "$dir"
         done
@@ -68,12 +70,13 @@ uninstall() {
     script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
     install_dir="$(dirname "$script_path")"
 
-    if [ "$(basename "$install_dir")" != ".git-single" ]; then
-        echo "Uninstall is available from the installed git-single command." >&2
+    if [ ! -f "$install_dir/.installed" ] && [ "$script_path" != "$HOME/.git-single/git-single" ]; then
+        echo "Error: this is not an installed git-single command." >&2
         exit 1
     fi
 
     rm -f "$script_path"
+    rm -f "$install_dir/.installed"
     rmdir "$install_dir" 2>/dev/null || true
     echo "git-single uninstalled. The PATH entry was left in place and is harmless."
 }
@@ -81,9 +84,11 @@ uninstall() {
 update() {
     script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
     temporary_file="$(mktemp)"
+    trap 'rm -f "$temporary_file"' EXIT
 
     curl -fsSL "$SCRIPT_URL" -o "$temporary_file"
     install -m 755 "$temporary_file" "$script_path"
+    trap - EXIT
     rm -f "$temporary_file"
     echo "git-single updated successfully."
 }
@@ -102,10 +107,11 @@ elif [ "$command" = "--uninstall" ]; then
     uninstall
 elif [ "$command" = "--help" ] || [ "$command" = "-h" ] || [ -z "$command" ]; then
     show_help
-elif [[ "$command" == *"tree"* ]]; then
+elif [[ "$command" == https://github.com/*/tree/* ]]; then
     get_dir "$command"
-elif [[ "$command" == *"blob"* ]]; then
+elif [[ "$command" == https://github.com/*/blob/* ]]; then
     get_file "$command"
 else
-    echo "Either you are putting the wrong URL or the URL is not a GitHub file/directory URL."
+    echo "Error: expected a GitHub /blob/ or /tree/ URL." >&2
+    exit 2
 fi

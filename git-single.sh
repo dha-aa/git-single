@@ -34,13 +34,21 @@ get_dir() {
     curl --fail --silent --show-error --location "$api_url" |
         grep -oE '"download_url": "[^"]+"' |
         sed 's/"download_url": "//; s/"$//' |
-        while read -r file_url; do
+        {
+            pids=()
+            while read -r file_url; do
             file="$(basename "$file_url")"
             download_file \
                 "$file_url" \
                 "$file" \
-                "$dir"
-        done
+                "$dir" &
+            pids+=("$!")
+            done
+
+            for pid in "${pids[@]}"; do
+                wait "$pid"
+            done
+        }
 }
 
 get_file() {
@@ -70,7 +78,7 @@ uninstall() {
     script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
     install_dir="$(dirname "$script_path")"
 
-    if [ ! -f "$install_dir/.installed" ] && [ "$script_path" != "$HOME/.git-single/git-single" ]; then
+    if [ ! -f "$install_dir/.installed" ] && [ "$(basename "$script_path")" != "git-single" ]; then
         echo "Error: this is not an installed git-single command." >&2
         exit 1
     fi

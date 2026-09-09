@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -e
+
+SCRIPT_URL="https://raw.githubusercontent.com/dha-aa/git-single/main/git-single.sh"
+
 download_file() {
     url="$1"
     filename="$2"
@@ -60,9 +64,45 @@ get_file() {
         "$file"
 }
 
-command="$1"
+uninstall() {
+    script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    install_dir="$(dirname "$script_path")"
 
-if [[ "$command" == *"tree"* ]]; then
+    if [ "$(basename "$install_dir")" != ".git-single" ]; then
+        echo "Uninstall is available from the installed git-single command." >&2
+        exit 1
+    fi
+
+    rm -f "$script_path"
+    rmdir "$install_dir" 2>/dev/null || true
+    echo "git-single uninstalled. The PATH entry was left in place and is harmless."
+}
+
+update() {
+    script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    temporary_file="$(mktemp)"
+
+    curl -fsSL "$SCRIPT_URL" -o "$temporary_file"
+    install -m 755 "$temporary_file" "$script_path"
+    rm -f "$temporary_file"
+    echo "git-single updated successfully."
+}
+
+show_help() {
+    echo "Usage: git-single <GitHub blob/tree URL>"
+    echo "       git-single --update"
+    echo "       git-single --uninstall"
+}
+
+command="${1:-}"
+
+if [ "$command" = "--update" ]; then
+    update
+elif [ "$command" = "--uninstall" ]; then
+    uninstall
+elif [ "$command" = "--help" ] || [ "$command" = "-h" ] || [ -z "$command" ]; then
+    show_help
+elif [[ "$command" == *"tree"* ]]; then
     get_dir "$command"
 elif [[ "$command" == *"blob"* ]]; then
     get_file "$command"

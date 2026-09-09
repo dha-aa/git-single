@@ -23,7 +23,7 @@ add_to_path() {
     fi
 }
 
-install_or_update() {
+install_git_single() {
     local tmp
     tmp="$(mktemp)"
     trap 'rm -f "$tmp"' EXIT
@@ -33,33 +33,19 @@ install_or_update() {
     add_to_path
     trap - EXIT
     rm -f "$tmp"
-    if [ "$1" = "install" ]; then
-        echo "git-single installed successfully at $BIN"
-    else
-        echo "git-single updated successfully at $BIN"
-    fi
+    echo "git-single installed successfully at $BIN"
     echo "Run: source $(shell_rc) or open a new shell."
 }
 
-uninstall() {
-    if [ -e "$BIN" ]; then
-        rm -f "$BIN"
-    fi
-    rmdir "$DIR" 2>/dev/null || true
-    echo "git-single removed. The PATH entry was left in place and is harmless."
-}
-
 case "${1:-install}" in
-    install) install_or_update install ;;
-    update) install_or_update update ;;
-    uninstall|delete|remove) uninstall ;;
+    install) install_git_single ;;
     -h|--help)
         sed -n '1,12p' "$0"
-        echo "Usage: $0 [install|update|uninstall]"
+        echo "Usage: $0 [install]"
         ;;
     *)
         echo "Unknown command: $1" >&2
-        echo "Usage: $0 [install|update|uninstall]" >&2
+        echo "Usage: $0 [install]" >&2
         exit 2
         ;;
 esac
